@@ -42,3 +42,7 @@ spec:
             secretKeyRef:
               name: "jira-sync"
               key: "jira-api-token"
+        - name: RUN_IN_CLUSTER
+          value: "true"
+        - name: KUBE_NAMESPACE
+          value: "default"
