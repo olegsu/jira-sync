@@ -86,6 +86,9 @@ func main() {
 						list := &list.ListReturns{}
 						json.Unmarshal([]byte(output), list)
 						message := strings.Builder{}
+						if len(list.Issues) == 0 {
+							message.WriteString("No new mentions in the last day")
+						}
 						for _, issue := range list.Issues {
 							if issue.Self != nil {
 								message.WriteString(fmt.Sprintf("I was mentioned in %s/browse/%s \n", jiraEndpoint, *issue.Key))
