@@ -117,6 +117,17 @@ func main() {
 	opt := &core.EngineOptions{
 		Pipeline: pipe,
 	}
+	runInKubeCluster := os.Getenv("RUN_IN_CLUSTER")
+	kubeNamespace := os.Getenv("KUBE_NAMESPACE")
+	if runInKubeCluster != "" {
+		if kubeNamespace == "" {
+			kubeNamespace = "default"
+		}
+		opt.Kubeconfig = &core.EngineKubernetesOptions{
+			InCluster: true,
+			Namespace: kubeNamespace,
+		}
+	}
 	e := core.NewEngine(opt)
 	err := e.Run()
 	if err != nil {
