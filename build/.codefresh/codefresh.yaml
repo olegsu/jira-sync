@@ -1,0 +1,21 @@
+version: '1.0'
+
+steps:
+
+  CloneJiraSync:
+    type: git-clone
+    repo: olegsu/jira-sync
+    git: cf_github
+    revision: ${{CF_REVISION}}
+
+  Build:
+    type: build
+    image_name: olsynt/jira-sync
+    tag: ${{CF_REVISION}}
+    working_directory: ${{CloneJiraSync}}
+
+  Push:
+    type: push
+    candidate: ${{Build}}
+    tag: latest
+    image_name: olsynt/jira-sync

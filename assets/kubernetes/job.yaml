@@ -1,0 +1,44 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  labels:
+    app: jira-sync
+  name: jira-sync
+spec:
+  backoffLimit: 0
+  completions: 1
+  parallelism: 1
+  template:
+    metadata:
+      labels:
+        app: jira-sync
+      name: jira-sync
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: root
+        command:
+        - ./jira-sync
+        image: olsynt/jira-sync
+        imagePullPolicy: Always
+        env:
+        - name: SLACK_WEBHOOK_URL
+          valueFrom:
+            secretKeyRef:
+              name: "jira-sync"
+              key: "slack-webhook-url"
+        - name: JIRA_USER
+          valueFrom:
+            secretKeyRef:
+              name: "jira-sync"
+              key: "jira-user"
+        - name: JIRA_ENDPOINT
+          valueFrom:
+            secretKeyRef:
+              name: "jira-sync"
+              key: "jira-endpoint"
+        - name: JIRA_API_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: "jira-sync"
+              key: "jira-api-token"
