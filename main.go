@@ -11,6 +11,11 @@ import (
 	"github.com/open-integration/service-catalog/jira/pkg/endpoints/list"
 )
 
+const (
+	taskGetAllIssuesWithMentions    = "Get latest mentions issues"
+	taskGetAllIssuesWhereIamWatcher = "Get Latest watched issues"
+)
+
 type (
 	buildTrelloAddCardTaskOptions struct {
 		taskName              string
@@ -29,9 +34,11 @@ type (
 	}
 
 	buildJiraTaskOptions struct {
+		taskName string
 		token    string
 		endpoint string
 		user     string
+		jql      string
 	}
 )
 
@@ -73,30 +80,36 @@ func main() {
 					Reaction: func(ev core.Event, state core.State) []core.Task {
 						return []core.Task{
 							buildJiraTask(&buildJiraTaskOptions{
+								taskName: taskGetAllIssuesWithMentions,
 								token:    jiraToken,
 								endpoint: jiraEndpoint,
 								user:     jiraUser,
+								jql:      "status != Done AND (comment ~ currentUser() OR description ~ currentUser()) AND updatedDate > startOfDay(-1)",
+							}),
+							buildJiraTask(&buildJiraTaskOptions{
+								taskName: taskGetAllIssuesWhereIamWatcher,
+								token:    jiraToken,
+								endpoint: jiraEndpoint,
+								user:     jiraUser,
+								jql:      "status != Done AND watcher = currentUser() AND updatedDate > startOfDay(-1)",
 							}),
 						}
 					},
 				},
 				core.EventReaction{
-					Condition: core.ConditionTaskFinishedWithStatus("Get Latest Issues", core.TaskStatusSuccess),
+					Condition: core.ConditionTaskFinishedWithStatus(taskGetAllIssuesWithMentions, core.TaskStatusSuccess),
 					Reaction: func(ev core.Event, state core.State) []core.Task {
-						output := ""
-						for _, t := range state.Tasks {
-							if t.Task == "Get Latest Issues" {
-								output = t.Output
-							}
-						}
 						list := &list.ListReturns{}
-						json.Unmarshal([]byte(output), list)
+						err := getTaskOutputTo(taskGetAllIssuesWithMentions, state, list)
+						if err != nil {
+							return []core.Task{}
+						}
 						message := strings.Builder{}
 						if len(list.Issues) == 0 {
-							message.WriteString("No new mentions in the last day")
+							return []core.Task{}
 						}
 						for _, issue := range list.Issues {
-							if issue.Self != nil {
+							if issue.Key != nil {
 								message.WriteString(fmt.Sprintf("An issue i was mentioned in was updated %s/browse/%s \n", jiraEndpoint, *issue.Key))
 							}
 						}
@@ -109,24 +122,71 @@ func main() {
 					},
 				},
 				core.EventReaction{
-					Condition: core.ConditionTaskFinishedWithStatus("Get Latest Issues", core.TaskStatusSuccess),
+					Condition: core.ConditionTaskFinishedWithStatus(taskGetAllIssuesWithMentions, core.TaskStatusSuccess),
 					Reaction: func(ev core.Event, state core.State) []core.Task {
-						output := ""
-						for _, t := range state.Tasks {
-							if t.Task == "Get Latest Issues" {
-								output = t.Output
-							}
-						}
-						list := &list.ListReturns{}
-						json.Unmarshal([]byte(output), list)
 						tasks := []core.Task{}
+						list := &list.ListReturns{}
+						err := getTaskOutputTo(taskGetAllIssuesWithMentions, state, list)
+						if err != nil {
+							return tasks
+						}
 						for _, issue := range list.Issues {
 							task := buildTrelloAddCardTask(&buildTrelloAddCardTaskOptions{
 								taskName:              fmt.Sprintf("Create card for issue %s", *issue.ID),
 								trelloAPIToken:        trelloAPIToken,
 								trelloAppID:           trelloAppID,
 								trelloBoardID:         trelloBoardID,
-								trelloCardDescription: fmt.Sprintf("Added by open-integration pipeline at %s\nLink: %s/browse/%s", time.Now(), jiraEndpoint, *issue.Key),
+								trelloCardDescription: fmt.Sprintf("Added by open-integration pipeline at %s\nLink: %s/browse/%s\nReason: I was mentioned", time.Now(), jiraEndpoint, *issue.Key),
+								trelloCardName:        fmt.Sprintf("Follow up with issue %s", *issue.Key),
+								trelloLebelIDs:        []string{trelloLebelIDs},
+								trelloListID:          trelloListID,
+							})
+							tasks = append(tasks, task)
+						}
+						return tasks
+					},
+				},
+				core.EventReaction{
+					Condition: core.ConditionTaskFinishedWithStatus(taskGetAllIssuesWhereIamWatcher, core.TaskStatusSuccess),
+					Reaction: func(ev core.Event, state core.State) []core.Task {
+						list := &list.ListReturns{}
+						err := getTaskOutputTo(taskGetAllIssuesWhereIamWatcher, state, list)
+						if err != nil {
+							return []core.Task{}
+						}
+						message := strings.Builder{}
+						if len(list.Issues) == 0 {
+							return []core.Task{}
+						}
+						for _, issue := range list.Issues {
+							if issue.Key != nil {
+								message.WriteString(fmt.Sprintf("An issue I am watching was updated %s/browse/%s \n", jiraEndpoint, *issue.Key))
+							}
+						}
+						return []core.Task{
+							buildSlackTask(&buildSlackTaskOptions{
+								url:     slackURL,
+								message: message.String(),
+							}),
+						}
+					},
+				},
+				core.EventReaction{
+					Condition: core.ConditionTaskFinishedWithStatus(taskGetAllIssuesWhereIamWatcher, core.TaskStatusSuccess),
+					Reaction: func(ev core.Event, state core.State) []core.Task {
+						tasks := []core.Task{}
+						list := &list.ListReturns{}
+						err := getTaskOutputTo(taskGetAllIssuesWhereIamWatcher, state, list)
+						if err != nil {
+							return tasks
+						}
+						for _, issue := range list.Issues {
+							task := buildTrelloAddCardTask(&buildTrelloAddCardTaskOptions{
+								taskName:              fmt.Sprintf("Create card for issue %s", *issue.ID),
+								trelloAPIToken:        trelloAPIToken,
+								trelloAppID:           trelloAppID,
+								trelloBoardID:         trelloBoardID,
+								trelloCardDescription: fmt.Sprintf("Added by open-integration pipeline at %s\nLink: %s/browse/%s\nReason: watching this issue", time.Now(), jiraEndpoint, *issue.Key),
 								trelloCardName:        fmt.Sprintf("Follow up with issue %s", *issue.Key),
 								trelloLebelIDs:        []string{trelloLebelIDs},
 								trelloListID:          trelloListID,
@@ -173,7 +233,7 @@ func getEnvOrDie(name string) string {
 func buildJiraTask(options *buildJiraTaskOptions) core.Task {
 	return core.Task{
 		Metadata: core.TaskMetadata{
-			Name: "Get Latest Issues",
+			Name: options.taskName,
 		},
 		Spec: core.TaskSpec{
 			Service:  "jira",
@@ -193,7 +253,7 @@ func buildJiraTask(options *buildJiraTaskOptions) core.Task {
 				},
 				core.Argument{
 					Key:   "JQL",
-					Value: "status != Done AND (comment ~ currentUser() OR description ~ currentUser()) AND updatedDate > startOfDay(-1)",
+					Value: options.jql,
 				},
 				core.Argument{
 					Key:   "QueryFields",
@@ -267,4 +327,14 @@ func buildTrelloAddCardTask(options *buildTrelloAddCardTaskOptions) core.Task {
 		},
 	}
 	return task
+}
+
+func getTaskOutputTo(task string, state core.State, target interface{}) error {
+	output := ""
+	for _, t := range state.Tasks {
+		if t.Task == task {
+			output = t.Output
+		}
+	}
+	return json.Unmarshal([]byte(output), target)
 }
