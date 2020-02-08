@@ -42,6 +42,11 @@ spec:
             secretKeyRef:
               name: "jira-sync"
               key: "jira-api-token"
+        - name: JIRA_START_DAY
+          valueFrom:
+            secretKeyRef:
+              name: "jira-sync"
+              key: "jira-start-day"
         - name: TRELLO_APP_ID
           valueFrom:
             secretKeyRef:

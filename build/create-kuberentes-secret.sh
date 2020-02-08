@@ -5,6 +5,7 @@ kubectl create secret generic jira-sync \
     --from-literal=jira-user=$JIRA_USER \
     --from-literal=jira-endpoint=$JIRA_ENDPOINT \
     --from-literal=jira-api-token=$JIRA_API_TOKEN \
+    --from-literal=jira-start-day=$JIRA_START_DAY \
     --from-literal=trello-app-id=$TRELLO_APP_ID \
     --from-literal=trello-board-id=$TRELLO_BOARD_ID \
     --from-literal=trello-api-token=$TRELLO_API_TOKEN \
