@@ -48,6 +48,7 @@ func main() {
 	jiraToken := getEnvOrDie("JIRA_API_TOKEN")
 	jiraEndpoint := getEnvOrDie("JIRA_ENDPOINT")
 	jiraUser := getEnvOrDie("JIRA_USER")
+	jiraStartDay := getEnvOrDie("JIRA_START_DAY")
 	slackURL := getEnvOrDie("SLACK_WEBHOOK_URL")
 	trelloAppID := getEnvOrDie("TRELLO_APP_ID")
 	trelloBoardID := getEnvOrDie("TRELLO_BOARD_ID")
@@ -86,14 +87,14 @@ func main() {
 								token:    jiraToken,
 								endpoint: jiraEndpoint,
 								user:     jiraUser,
-								jql:      "status != Done AND (comment ~ currentUser() OR description ~ currentUser()) AND updatedDate > startOfDay(-1)",
+								jql:      fmt.Sprintf("status != Done AND (comment ~ currentUser() OR description ~ currentUser()) AND updatedDate > startOfDay(%s)", jiraStartDay),
 							}),
 							buildJiraTask(&buildJiraTaskOptions{
 								taskName: taskGetAllIssuesWhereIamWatcher,
 								token:    jiraToken,
 								endpoint: jiraEndpoint,
 								user:     jiraUser,
-								jql:      "status != Done AND watcher = currentUser() AND updatedDate > startOfDay(-1)",
+								jql:      fmt.Sprintf("status != Done AND watcher = currentUser() AND updatedDate > startOfDay(%s)", jiraStartDay),
 							}),
 						}
 					},
