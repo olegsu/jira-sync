@@ -16,6 +16,8 @@ const (
 	taskGetAllIssuesWhereIamWatcher = "Get Latest watched issues"
 )
 
+var now = func() string { return time.Now().Format("2006-01-02") }
+
 type (
 	buildTrelloAddCardTaskOptions struct {
 		taskName              string
@@ -136,7 +138,7 @@ func main() {
 								trelloAPIToken:        trelloAPIToken,
 								trelloAppID:           trelloAppID,
 								trelloBoardID:         trelloBoardID,
-								trelloCardDescription: fmt.Sprintf("Added by open-integration pipeline at %s\nLink: %s/browse/%s\nReason: I was mentioned", time.Now(), jiraEndpoint, *issue.Key),
+								trelloCardDescription: fmt.Sprintf("Added by open-integration pipeline at %s\nLink: %s/browse/%s\nReason: I was mentioned.\nDescription: %s", now(), jiraEndpoint, *issue.Key, issue.Fields["description"].(string)),
 								trelloCardName:        fmt.Sprintf("Follow up with issue %s", *issue.Key),
 								trelloLebelIDs:        []string{trelloLebelIDs},
 								trelloListID:          trelloListID,
@@ -186,7 +188,7 @@ func main() {
 								trelloAPIToken:        trelloAPIToken,
 								trelloAppID:           trelloAppID,
 								trelloBoardID:         trelloBoardID,
-								trelloCardDescription: fmt.Sprintf("Added by open-integration pipeline at %s\nLink: %s/browse/%s\nReason: watching this issue", time.Now(), jiraEndpoint, *issue.Key),
+								trelloCardDescription: fmt.Sprintf("Added by open-integration pipeline at %s\nLink: %s/browse/%s\nReason: watching this issue.\nDescription: %s", now(), jiraEndpoint, *issue.Key, issue.Fields["description"].(string)),
 								trelloCardName:        fmt.Sprintf("Follow up with issue %s", *issue.Key),
 								trelloLebelIDs:        []string{trelloLebelIDs},
 								trelloListID:          trelloListID,
