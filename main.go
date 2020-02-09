@@ -227,7 +227,7 @@ func main() {
 func getEnvOrDie(name string) string {
 	val := os.Getenv(name)
 	if val == "" {
-		fmt.Printf("%s is required and not set, exiting")
+		fmt.Printf("%s is required and not set, exiting", name)
 		os.Exit(1)
 	}
 	return val
