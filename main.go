@@ -134,12 +134,21 @@ func main() {
 							return tasks
 						}
 						for _, issue := range list.Issues {
+							description, ok := issue.Fields["description"].(string)
+							trelloCardDescriptionBuilder := strings.Builder{}
+							trelloCardDescriptionBuilder.WriteString(fmt.Sprintf("Added by open-integration pipeline at %s", now()))
+							trelloCardDescriptionBuilder.WriteString(fmt.Sprintf("Link: %s/browse/%s", jiraEndpoint, *issue.Key))
+							trelloCardDescriptionBuilder.WriteString("Reason: I was mentioned.")
+							if ok {
+								trelloCardDescriptionBuilder.WriteString(fmt.Sprintf("Description: %s", description))
+							}
+
 							task := buildTrelloAddCardTask(&buildTrelloAddCardTaskOptions{
 								taskName:              fmt.Sprintf("Create card for issue %s", *issue.ID),
 								trelloAPIToken:        trelloAPIToken,
 								trelloAppID:           trelloAppID,
 								trelloBoardID:         trelloBoardID,
-								trelloCardDescription: fmt.Sprintf("Added by open-integration pipeline at %s\nLink: %s/browse/%s\nReason: I was mentioned.\nDescription: %s", now(), jiraEndpoint, *issue.Key, issue.Fields["description"].(string)),
+								trelloCardDescription: trelloCardDescriptionBuilder.String(),
 								trelloCardName:        fmt.Sprintf("Follow up with issue %s", *issue.Key),
 								trelloLebelIDs:        []string{trelloLebelIDs},
 								trelloListID:          trelloListID,
@@ -184,12 +193,20 @@ func main() {
 							return tasks
 						}
 						for _, issue := range list.Issues {
+							description, ok := issue.Fields["description"].(string)
+							trelloCardDescriptionBuilder := strings.Builder{}
+							trelloCardDescriptionBuilder.WriteString(fmt.Sprintf("Added by open-integration pipeline at %s", now()))
+							trelloCardDescriptionBuilder.WriteString(fmt.Sprintf("Link: %s/browse/%s", jiraEndpoint, *issue.Key))
+							trelloCardDescriptionBuilder.WriteString("watching this issue.")
+							if ok {
+								trelloCardDescriptionBuilder.WriteString(fmt.Sprintf("Description: %s", description))
+							}
 							task := buildTrelloAddCardTask(&buildTrelloAddCardTaskOptions{
 								taskName:              fmt.Sprintf("Create card for issue %s", *issue.ID),
 								trelloAPIToken:        trelloAPIToken,
 								trelloAppID:           trelloAppID,
 								trelloBoardID:         trelloBoardID,
-								trelloCardDescription: fmt.Sprintf("Added by open-integration pipeline at %s\nLink: %s/browse/%s\nReason: watching this issue.\nDescription: %s", now(), jiraEndpoint, *issue.Key, issue.Fields["description"].(string)),
+								trelloCardDescription: trelloCardDescriptionBuilder.String(),
 								trelloCardName:        fmt.Sprintf("Follow up with issue %s", *issue.Key),
 								trelloLebelIDs:        []string{trelloLebelIDs},
 								trelloListID:          trelloListID,
