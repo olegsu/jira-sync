@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/open-integration/core"
+	"github.com/open-integration/core/pkg/state"
 	"github.com/open-integration/service-catalog/jira/pkg/endpoints/list"
 )
 
@@ -31,8 +32,9 @@ type (
 	}
 
 	buildSlackTaskOptions struct {
-		url     string
-		message string
+		taskName string
+		url      string
+		message  string
 	}
 
 	buildJiraTaskOptions struct {
@@ -80,7 +82,7 @@ func main() {
 			Reactions: []core.EventReaction{
 				core.EventReaction{
 					Condition: core.ConditionEngineStarted,
-					Reaction: func(ev core.Event, state core.State) []core.Task {
+					Reaction: func(ev state.Event, state state.State) []core.Task {
 						return []core.Task{
 							buildJiraTask(&buildJiraTaskOptions{
 								taskName: taskGetAllIssuesWithMentions,
@@ -100,8 +102,8 @@ func main() {
 					},
 				},
 				core.EventReaction{
-					Condition: core.ConditionTaskFinishedWithStatus(taskGetAllIssuesWithMentions, core.TaskStatusSuccess),
-					Reaction: func(ev core.Event, state core.State) []core.Task {
+					Condition: core.ConditionTaskFinishedWithStatus(taskGetAllIssuesWithMentions, state.TaskStatusSuccess),
+					Reaction: func(ev state.Event, state state.State) []core.Task {
 						list := &list.ListReturns{}
 						err := getTaskOutputTo(taskGetAllIssuesWithMentions, state, list)
 						if err != nil {
@@ -118,15 +120,16 @@ func main() {
 						}
 						return []core.Task{
 							buildSlackTask(&buildSlackTaskOptions{
-								url:     slackURL,
-								message: message.String(),
+								taskName: fmt.Sprintf("Send message as reaction to %s finished", taskGetAllIssuesWithMentions),
+								url:      slackURL,
+								message:  message.String(),
 							}),
 						}
 					},
 				},
 				core.EventReaction{
-					Condition: core.ConditionTaskFinishedWithStatus(taskGetAllIssuesWithMentions, core.TaskStatusSuccess),
-					Reaction: func(ev core.Event, state core.State) []core.Task {
+					Condition: core.ConditionTaskFinishedWithStatus(taskGetAllIssuesWithMentions, state.TaskStatusSuccess),
+					Reaction: func(ev state.Event, state state.State) []core.Task {
 						tasks := []core.Task{}
 						list := &list.ListReturns{}
 						err := getTaskOutputTo(taskGetAllIssuesWithMentions, state, list)
@@ -142,7 +145,6 @@ func main() {
 							if ok {
 								trelloCardDescriptionBuilder.WriteString(fmt.Sprintf("Description: %s", description))
 							}
-
 							task := buildTrelloAddCardTask(&buildTrelloAddCardTaskOptions{
 								taskName:              fmt.Sprintf("Create card for issue %s", *issue.ID),
 								trelloAPIToken:        trelloAPIToken,
@@ -159,33 +161,34 @@ func main() {
 					},
 				},
 				core.EventReaction{
-					Condition: core.ConditionTaskFinishedWithStatus(taskGetAllIssuesWhereIamWatcher, core.TaskStatusSuccess),
-					Reaction: func(ev core.Event, state core.State) []core.Task {
+					Condition: core.ConditionTaskFinishedWithStatus(taskGetAllIssuesWhereIamWatcher, state.TaskStatusSuccess),
+					Reaction: func(ev state.Event, state state.State) []core.Task {
 						list := &list.ListReturns{}
 						err := getTaskOutputTo(taskGetAllIssuesWhereIamWatcher, state, list)
 						if err != nil {
 							return []core.Task{}
 						}
-						message := strings.Builder{}
 						if len(list.Issues) == 0 {
 							return []core.Task{}
 						}
-						for _, issue := range list.Issues {
+						tasks := []core.Task{}
+						for i, issue := range list.Issues {
 							if issue.Key != nil {
-								message.WriteString(fmt.Sprintf("An issue I am watching was updated %s/browse/%s \n", jiraEndpoint, *issue.Key))
+								message := strings.Builder{}
+								message.WriteString(fmt.Sprintf("An issue I am watching was updated %s/browse/%s --- %d \n", jiraEndpoint, *issue.Key, i))
+								tasks = append(tasks, buildSlackTask(&buildSlackTaskOptions{
+									taskName: fmt.Sprintf("Send message as reaction to %s finished", taskGetAllIssuesWhereIamWatcher),
+									url:      slackURL,
+									message:  message.String(),
+								}))
 							}
 						}
-						return []core.Task{
-							buildSlackTask(&buildSlackTaskOptions{
-								url:     slackURL,
-								message: message.String(),
-							}),
-						}
+						return tasks
 					},
 				},
 				core.EventReaction{
-					Condition: core.ConditionTaskFinishedWithStatus(taskGetAllIssuesWhereIamWatcher, core.TaskStatusSuccess),
-					Reaction: func(ev core.Event, state core.State) []core.Task {
+					Condition: core.ConditionTaskFinishedWithStatus(taskGetAllIssuesWhereIamWatcher, state.TaskStatusSuccess),
+					Reaction: func(ev state.Event, state state.State) []core.Task {
 						tasks := []core.Task{}
 						list := &list.ListReturns{}
 						err := getTaskOutputTo(taskGetAllIssuesWhereIamWatcher, state, list)
@@ -287,7 +290,7 @@ func buildJiraTask(options *buildJiraTaskOptions) core.Task {
 func buildSlackTask(options *buildSlackTaskOptions) core.Task {
 	return core.Task{
 		Metadata: core.TaskMetadata{
-			Name: "Send Slack Message",
+			Name: options.taskName,
 		},
 		Spec: core.TaskSpec{
 			Service:  "slack",
@@ -349,9 +352,9 @@ func buildTrelloAddCardTask(options *buildTrelloAddCardTaskOptions) core.Task {
 	return task
 }
 
-func getTaskOutputTo(task string, state core.State, target interface{}) error {
+func getTaskOutputTo(task string, state state.State, target interface{}) error {
 	output := ""
-	for _, t := range state.Tasks {
+	for _, t := range state.Tasks() {
 		if t.Task == task {
 			output = t.Output
 		}
