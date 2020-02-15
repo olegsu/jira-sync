@@ -11,4 +11,10 @@ To run this pipeline locally:
 * `export JIRA_USER=`
 * `export JIRA_ENDPOINT=`
 * `export JIRA_API_TOKEN=`
+* `export JIRA_START_DAY=-1`
+* `export TRELLO_APP_ID=`
+* `export TRELLO_BOARD_ID=`
+* `export TRELLO_API_TOKEN=`
+* `export TRELLO_LIST_ID=`
+* `export TRELLO_LABEL_IDS=`
 * `./build.run.sh`
