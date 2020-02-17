@@ -139,9 +139,9 @@ func main() {
 						for _, issue := range list.Issues {
 							description, ok := issue.Fields["description"].(string)
 							trelloCardDescriptionBuilder := strings.Builder{}
-							trelloCardDescriptionBuilder.WriteString(fmt.Sprintf("Added by open-integration pipeline at %s", now()))
-							trelloCardDescriptionBuilder.WriteString(fmt.Sprintf("Link: %s/browse/%s", jiraEndpoint, *issue.Key))
-							trelloCardDescriptionBuilder.WriteString("Reason: I was mentioned.")
+							trelloCardDescriptionBuilder.WriteString(fmt.Sprintf("Added by open-integration pipeline at %s\n", now()))
+							trelloCardDescriptionBuilder.WriteString(fmt.Sprintf("Link: %s/browse/%s\n", jiraEndpoint, *issue.Key))
+							trelloCardDescriptionBuilder.WriteString("Reason: I was mentioned.\n")
 							if ok {
 								trelloCardDescriptionBuilder.WriteString(fmt.Sprintf("Description: %s", description))
 							}
@@ -198,9 +198,9 @@ func main() {
 						for _, issue := range list.Issues {
 							description, ok := issue.Fields["description"].(string)
 							trelloCardDescriptionBuilder := strings.Builder{}
-							trelloCardDescriptionBuilder.WriteString(fmt.Sprintf("Added by open-integration pipeline at %s", now()))
-							trelloCardDescriptionBuilder.WriteString(fmt.Sprintf("Link: %s/browse/%s", jiraEndpoint, *issue.Key))
-							trelloCardDescriptionBuilder.WriteString("watching this issue.")
+							trelloCardDescriptionBuilder.WriteString(fmt.Sprintf("Added by open-integration pipeline at %s\n", now()))
+							trelloCardDescriptionBuilder.WriteString(fmt.Sprintf("Link: %s/browse/%s\n", jiraEndpoint, *issue.Key))
+							trelloCardDescriptionBuilder.WriteString("watching this issue.\n")
 							if ok {
 								trelloCardDescriptionBuilder.WriteString(fmt.Sprintf("Description: %s", description))
 							}
