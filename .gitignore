@@ -3,3 +3,6 @@
 .idea
 logs
 dist
+state.yaml
+events.yaml
+graph.dot
